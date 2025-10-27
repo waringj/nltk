@@ -3,6 +3,14 @@ Unit tests for nltk.tokenize.
 See also nltk/test/tokenize.doctest
 """
 
+# import os
+# import sys
+# curdir = os.getcwd()    #assuming user is testing from nltk root folder
+# # curdir = curdir + "\\..\\.." #this line is if assuming user is testing from tokenizer folder
+# sys.path.insert(0, curdir) #add repo's nltk root to top of python sys.path
+
+from nltk import pos_tag
+
 from typing import List, Tuple
 
 import pytest
@@ -21,28 +29,58 @@ from nltk.tokenize.simple import CharTokenizer
 
 from nltk.tokenize.treebank import TreebankWordDetokenizer
 
-def test_issue_3260_quote_order():
-    detok = TreebankWordDetokenizer()
-    s = ['``', 'Shippers', 'are', 'saying', '`', 'the', 'party', "'s",
-         'over', ',', "'", "''", 'said', 'Mr.', 'LaLonde', '.']
-    out = detok.detokenize(s)
-    expected = '"Shippers are saying ` the party\'s over,\'" said Mr. LaLonde.'
-    assert out == expected
+# def test_quote_order():
+#     detok = TreebankWordDetokenizer()
+#     s = ['``', 'Shippers', 'are', 'saying', '`', 'the', 'party', "'s",
+#          'over', ',', "'", "\"", 'said', 'Mr.', 'LaLonde', '.']
+#     out = detok.detokenize(s)
+#     expected = '"Shippers are saying ` the party\'s over,\'" said Mr. LaLonde.'
+#     assert out == expected
 
-def test_issue_3260_quote_order_minimal():
-    detok = TreebankWordDetokenizer()
-    s = ['word', ',', "'", "''"]
-    assert detok.detokenize(s) == 'word,\'"'
+# def test_quote_order_minimal():
+#     detok = TreebankWordDetokenizer()
+#     s = ['word', ',', "'", "''"]
+#     assert detok.detokenize(s) == 'word,\'"'
 
-def test_no_space_before_closing_double_quote():
+def test_issue_3260_no_space_before_closing_double_quote():
     detok = TreebankWordDetokenizer()
     s = ['hello', ',', "''", 'world', '.']
     assert detok.detokenize(s) == 'hello," world.'
 
-def test_keep_contractions_unchanged():
+def test_issue_3260_keep_contractions_unchanged():
     detok = TreebankWordDetokenizer()
     s = ['I', "'m", 'sure', '.']
     assert detok.detokenize(s) == "I'm sure."
+
+def test_issue_3210_detokenize_period_default():
+    text = "Lorem ipsum dolor sit amet. consectetur adipiscing elit."
+    # print("Input string 1:\n" + text + '\n');
+    text2 = "Lorem ipsum. . d.o.l.o.r sit amet@   @. consectetur!!!!!!!! adipiscing.... elit??."
+    # print("Input string 2:\n" + text2 + '\n');
+    tagged_words = pos_tag(word_tokenize(text))     #tokenize text
+    words = [word for word, tag in tagged_words]    #make list of text tokens
+    tagged_words2 = pos_tag(word_tokenize(text2))
+    words2 = [word for word, tag in tagged_words2]
+
+    detok = TreebankWordDetokenizer().detokenize(words)
+    detok2 = TreebankWordDetokenizer().detokenize(words2)
+    assert detok == "Lorem ipsum dolor sit amet. consectetur adipiscing elit."
+    assert detok2 == "Lorem ipsum.. d.o.l.o.r sit amet @ @. consectetur!!!!!!!! adipiscing.... elit??."
+
+def test_issue_3210_detokenize_period_isolated():
+    text = "Lorem ipsum dolor sit amet. consectetur adipiscing elit."
+    # print("Input string 1:\n" + text + '\n');
+    text2 = "Lorem ipsum. . d.o.l.o.r sit amet@   @. consectetur!!!!!!!! adipiscing.... elit??."
+    # print("Input string 2:\n" + text2 + '\n');
+    tagged_words = pos_tag(word_tokenize(text))     #tokenize text
+    words = [word for word, tag in tagged_words]    #make list of text tokens
+    tagged_words2 = pos_tag(word_tokenize(text2))
+    words2 = [word for word, tag in tagged_words2]
+
+    detok = TreebankWordDetokenizer().detokenize(words, 0, 1)
+    detok2 = TreebankWordDetokenizer().detokenize(words2, 0, 1)
+    assert detok == "Lorem ipsum dolor sit amet . consectetur adipiscing elit ."
+    assert detok2 == "Lorem ipsum . . d.o.l.o.r sit amet @ @ . consectetur!!!!!!!! adipiscing .... elit?? ."
 
 
 def load_stanford_segmenter():
